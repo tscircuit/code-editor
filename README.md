@@ -1,59 +1,80 @@
 # code-editor
 A code editor for tscircuit snippets that automatically loads types for snippets
 
-## Store Interface
-
+### Store Interface
 ```typescript
 // types.ts
-interface EditorFile {
+interface OriginalFile {
   path: string
-  savedContent: string // Last saved on server
-  currentContent: string
+  content: string
   language: 'typescript' | 'json'
-  lastSavedAt: Date
 }
 
-// store.ts
+interface FileChange {
+  path: string
+  content: string
+  lastModified: Date
+}
+
+interface FileWithChanges {
+  path: string
+  originalContent: string
+  currentContent: string
+  hasChanges: boolean
+  language: 'typescript' | 'json'
+}
+
 interface EditorStore {
-  // State
-  files: Record<string, EditorFile>
+  // Original state from server
+  originalFiles: Record<string, OriginalFile>
+  
+  // User changes
+  changes: Record<string, FileChange>
+  
+  // UI state
   currentFilePath: string | null
-  hasUnsavedChanges: boolean
 
   // Actions
-  updateContent: (content: string) => void
-  saveCurrentFile: () => Promise<void>
-  setActiveFile: (path: string) => void
+  updateContent: (path: string, content: string) => void
+  resetChanges: (paths?: string[]) => void
+  setCurrentFile: (path: string) => void
+  
+  // Computed
+  getFilesWithChanges: () => Record<string, FileWithChanges>
 }
 ```
 
-## Component Props
-
+### Component Props
 ```typescript
 interface TscircuitCodeEditorProps {
-  // Optional className for container
+  // Appearance
   className?: string
-  
-  // Editor appearance
   theme?: 'light' | 'dark'
-  showLineNumbers?: boolean
   fontSize?: number
+  showLineNumbers?: boolean
   
-  // Toolbar options
+  // Toolbar configuration
   showToolbar?: boolean
   toolbarItems?: React.ComponentType
   
   // Event handlers
-  onSave?: (file: EditorFile) => Promise<void>
+  onSave?: (files: FileWithChanges[]) => Promise<void>
   onError?: (error: Error) => void
   
   // Custom components
   LoadingComponent?: React.ComponentType
   ErrorComponent?: React.ComponentType<{ error: Error }>
+
+  // Select the file from the dropdown
+  FileListComponent?: React.ComponentType<{
+    files: Record<string, FileWithChanges>
+    currentPath: string | null
+    onSelect: (path: string) => void
+  }>
 }
 ```
 
-## Migration Guide
+### Migration Guide
 
 1. Install the package:
 ```bash
@@ -61,7 +82,6 @@ bun install @tscircuit/code-editor
 ```
 
 2. Replace existing CodeEditor implementation with TscircuitCodeEditor:
-
 ```typescript
 // Before
 <CodeEditor
@@ -74,20 +94,62 @@ bun install @tscircuit/code-editor
 
 // After
 const CircuitEditor = () => {
-  const { setCurrentFile } = useTscircuitEditor()
-
+  const [isLoading, setIsLoading] = useState(true)
+  
+  // Load files from server
   useEffect(() => {
-    setCurrentFile('main.tsx')
-  }, [])
+    const loadFiles = async () => {
+      setIsLoading(true)
+      try {
+        const response = await fetch(`/package_files/list?package_release_id=${releaseId}`)
+        const files = await response.json()
+        
+        // Initialize editor with original files
+        initializeEditor({
+          originalFiles: files.reduce((acc, file) => ({
+            ...acc,
+            [file.path]: {
+              path: file.path,
+              content: file.content,
+              language: file.path.endsWith('.json') ? 'json' : 'typescript'
+            }
+          }), {})
+        })
+      } catch (error) {
+        console.error('Failed to load files:', error)
+      }
+      setIsLoading(false)
+    }
+    
+    loadFiles()
+  }, [releaseId])
+
+  // Get current state including any changes
+  const { getFilesWithChanges } = useTscircuitEditor()
+
+  const handleSave = async () => {
+      const allFiles = getFilesWithChanges()
+      // Only get files that have changes
+      const changedFiles = Object.values(allFiles)
+        .filter(file => file.hasChanges)
+      
+      // Now we only save files that actually changed
+      await Promise.all(
+        changedFiles.map(file => 
+          saveToServer({
+            path: file.path,
+            content: file.currentContent
+          })
+        )
+      )
+    }
 
   return (
     <TscircuitCodeEditor
       theme="dark"
       showToolbar
-      toolBarItems={<>pass the items</>}
-      onSave={async (file) => {
-        await saveToServer(file.path, file.currentContent)
-      }}
+      toolbarItems={<>Custom toolbar headers...</>}
+      onSave={handleSave}
       onError={(error) => {
         toast.error(error.message)
       }}
@@ -96,67 +158,75 @@ const CircuitEditor = () => {
 }
 ```
 
-## Store Implementation Example
-
+### Store Implementation Example
 ```typescript
 import { create } from 'zustand'
-import type { CodeEditorState } from './types'
 
 export const useEditorStore = create<EditorStore>((set, get) => ({
   // Initial state
-  files: {},
+  originalFiles: {},
+  changes: {},
   currentFilePath: null,
 
   // Actions
-  updateContent: (content: string) => {
-    set((state) => {
-      const path = state.currentFilePath
-      if (!path) return state
+  updateContent: (path, content) => {
+    const originalFile = get().originalFiles[path]
+    if (!originalFile) return
 
-      return {
-        files: {
-          ...state.files,
+    // Only create change if content is different from original
+    if (content === originalFile.content) {
+      // Remove change if content matches original
+      set((state) => {
+        const newChanges = { ...state.changes }
+        delete newChanges[path]
+        return { changes: newChanges }
+      })
+    } else {
+      // Update or create change
+      set((state) => ({
+        changes: {
+          ...state.changes,
           [path]: {
-            ...state.files[path],
-            currentContent: content
+            path,
+            content,
+            lastModified: new Date()
           }
         }
-      }
+      }))
+    }
+  },
+
+  resetChanges: (paths) => {
+    set((state) => {
+      if (!paths) return { changes: {} }
+      const newChanges = { ...state.changes }
+      paths.forEach(path => {
+        delete newChanges[path]
+      })
+      return { changes: newChanges }
     })
   },
 
-  saveCurrentFile: async () => {
-    const state = get()
-    const file = get().getCurrentFile()
-    if (!file) return
-
-    set((state) => ({
-      files: {
-        ...state.files,
-        [file.path]: {
-          ...file,
-          savedContent: file.currentContent,
-          lastSavedAt: new Date()
-        }
-      }
-    }))
-  },
-
-  setCurrentFile: (path: string) => {
+  setCurrentFile: (path) => {
     set({ currentFilePath: path })
   },
 
   // Computed
-  getCurrentFile: () => {
+  getFilesWithChanges: () => {
     const state = get()
-    if (!state.currentFilePath) return null
-    return state.files[state.currentFilePath]
-  },
-
-  get hasUnsavedChanges() {
-    const file = get().getCurrentFile()
-    if (!file) return false
-    return file.savedContent !== file.currentContent
+    return Object.keys(state.originalFiles).reduce((acc, path) => {
+      const originalFile = state.originalFiles[path]
+      const change = state.changes[path]
+      
+      acc[path] = {
+        path,
+        originalContent: originalFile.content,
+        currentContent: change?.content ?? originalFile.content,
+        hasChanges: !!change,
+        language: originalFile.language
+      }
+      return acc
+    }, {} as Record<string, FileWithChanges>)
   }
 }))
 ```
