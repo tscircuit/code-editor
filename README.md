@@ -4,47 +4,26 @@ A code editor for tscircuit snippets that automatically loads types for snippets
 ## Store Interface
 
 ```typescript
-interface CodeEditorFile {
-  filename: string
-  content: string
-  language: 'typescript' | 'json' | 'javascript'
+// types.ts
+interface EditorFile {
+  path: string
+  savedContent: string // Last saved on server
+  currentContent: string
+  language: 'typescript' | 'json'
+  lastSavedAt: Date
 }
 
-interface CodeEditorState {
+// store.ts
+interface EditorStore {
   // State
-  files: Record<string, CodeEditorFile>
-  activeFile: string
-  cursorPosition: number | null
-  isStreaming: boolean
-  readOnly: boolean
-  
-  // Config
-  showToolbar: boolean
-  baseApiUrl: string
-  codeCompletionApiKey?: string
-  
-  // File Actions
-  setFile: (filename: string, content: string) => void
-  updateFileContent: (filename: string, content: string) => void
-  setActiveFile: (filename: string) => void
-  removeFile: (filename: string) => void
-  
-  // Editor State
-  setCursorPosition: (position: number | null) => void
-  setIsStreaming: (isStreaming: boolean) => void
-  setReadOnly: (readOnly: boolean) => void
-  
-  // Editor Config
-  setShowToolbar: (show: boolean) => void
-  setBaseApiUrl: (url: string) => void
-  setCodeCompletionApiKey: (key: string) => void
-}
+  files: Record<string, EditorFile>
+  currentFilePath: string | null
+  hasUnsavedChanges: boolean
 
-// Events emitted by the editor
-interface CodeEditorEvents {
-  onCodeChange: (code: string, filename: string) => void
-  onCursorPositionChange: (position: number | null) => void
-  onError: (error: Error) => void
+  // Actions
+  updateContent: (content: string) => void
+  saveCurrentFile: () => Promise<void>
+  setActiveFile: (path: string) => void
 }
 ```
 
@@ -52,15 +31,25 @@ interface CodeEditorEvents {
 
 ```typescript
 interface TscircuitCodeEditorProps {
-  // Optional configuration overrides
-  readOnly?: boolean
+  // Optional className for container
+  className?: string
+  
+  // Editor appearance
+  theme?: 'light' | 'dark'
+  showLineNumbers?: boolean
+  fontSize?: number
+  
+  // Toolbar options
   showToolbar?: boolean
-  baseApiUrl?: string
-  codeCompletionApiKey?: string
+  toolbarItems?: React.ComponentType
   
   // Event handlers
-  onCodeChange?: (code: string, filename: string) => void
+  onSave?: (file: EditorFile) => Promise<void>
   onError?: (error: Error) => void
+  
+  // Custom components
+  LoadingComponent?: React.ComponentType
+  ErrorComponent?: React.ComponentType<{ error: Error }>
 }
 ```
 
@@ -84,19 +73,27 @@ bun install @tscircuit/code-editor
 />
 
 // After
-const { setFile, setActiveFile, setIsStreaming, setReadOnly } = useTscircuitCodeEditor()
+const CircuitEditor = () => {
+  const { setCurrentFile } = useTscircuitEditor()
 
-// Initialize files
-useEffect(() => {
-  setFile('index.tsx', code)
-  setIsStreaming(isStreaming)
-  setReadOnly(isReadOnly)
-}, [code, isStreaming, isReadOnly])
+  useEffect(() => {
+    setCurrentFile('main.tsx')
+  }, [])
 
-<TscircuitCodeEditor
-  onCodeChange={handleCodeChange}
-  showToolbar={showToolbar}
-/>
+  return (
+    <TscircuitCodeEditor
+      theme="dark"
+      showToolbar
+      toolBarItems={<>pass the items</>}
+      onSave={async (file) => {
+        await saveToServer(file.path, file.currentContent)
+      }}
+      onError={(error) => {
+        toast.error(error.message)
+      }}
+    />
+  )
+}
 ```
 
 ## Store Implementation Example
@@ -105,36 +102,61 @@ useEffect(() => {
 import { create } from 'zustand'
 import type { CodeEditorState } from './types'
 
-export const useCodeEditorStore = create<CodeEditorState>((set, get) => ({
+export const useEditorStore = create<EditorStore>((set, get) => ({
+  // Initial state
   files: {},
-  activeFile: '',
-  cursorPosition: null,
-  isStreaming: false,
-  readOnly: false,
-  showToolbar: true,
-  baseApiUrl: '',
-  
-  setFile: (filename, content) => 
+  currentFilePath: null,
+
+  // Actions
+  updateContent: (content: string) => {
+    set((state) => {
+      const path = state.currentFilePath
+      if (!path) return state
+
+      return {
+        files: {
+          ...state.files,
+          [path]: {
+            ...state.files[path],
+            currentContent: content
+          }
+        }
+      }
+    })
+  },
+
+  saveCurrentFile: async () => {
+    const state = get()
+    const file = get().getCurrentFile()
+    if (!file) return
+
     set((state) => ({
       files: {
         ...state.files,
-        [filename]: {
-          filename,
-          content,
-          language: filename.endsWith('.json') ? 'json' : 'typescript'
+        [file.path]: {
+          ...file,
+          savedContent: file.currentContent,
+          lastSavedAt: new Date()
         }
       }
-    })),
-    
-  updateFileContent: (filename, content) =>
-    set((state) => ({
-      files: {
-        ...state.files,
-        [filename]: {
-          ...state.files[filename],
-          content
-        }
-      }
-    })),
+    }))
+  },
+
+  setCurrentFile: (path: string) => {
+    set({ currentFilePath: path })
+  },
+
+  // Computed
+  getCurrentFile: () => {
+    const state = get()
+    if (!state.currentFilePath) return null
+    return state.files[state.currentFilePath]
+  },
+
+  get hasUnsavedChanges() {
+    const file = get().getCurrentFile()
+    if (!file) return false
+    return file.savedContent !== file.currentContent
+  }
 }))
 ```
