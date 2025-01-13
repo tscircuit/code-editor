@@ -1,4 +1,4 @@
-# code-editor
+# @tscircuit/code-editor
 A code editor for tscircuit snippets that automatically loads types for snippets
 
 ### Store Interface
@@ -41,6 +41,11 @@ interface EditorStore {
   
   // Computed
   getFilesWithChanges: () => Record<string, FileWithChanges>
+  getCurrentFile: () => FileWithChanges | null
+  initializeEditor: (config: {
+    originalFiles: Record<string, OriginalFile>
+  }) => void
+
 }
 ```
 
@@ -58,14 +63,12 @@ interface TscircuitCodeEditorProps {
   toolbarItems?: React.ComponentType
   
   // Event handlers
-  onSave?: (files: FileWithChanges[]) => Promise<void>
+  onSave?: (file: FileWithChanges) => Promise<void>
   onError?: (error: Error) => void
   
   // Custom components
   LoadingComponent?: React.ComponentType
   ErrorComponent?: React.ComponentType<{ error: Error }>
-
-  // Select the file from the dropdown
   FileListComponent?: React.ComponentType<{
     files: Record<string, FileWithChanges>
     currentPath: string | null
@@ -95,6 +98,8 @@ bun install @tscircuit/code-editor
 // After
 const CircuitEditor = () => {
   const [isLoading, setIsLoading] = useState(true)
+
+  const { getCurrentFile, initializeEditor } = useTscircuitEditor()
   
   // Load files from server
   useEffect(() => {
@@ -124,25 +129,15 @@ const CircuitEditor = () => {
     loadFiles()
   }, [releaseId])
 
-  // Get current state including any changes
-  const { getFilesWithChanges } = useTscircuitEditor()
-
   const handleSave = async () => {
-      const allFiles = getFilesWithChanges()
-      // Only get files that have changes
-      const changedFiles = Object.values(allFiles)
-        .filter(file => file.hasChanges)
-      
-      // Now we only save files that actually changed
-      await Promise.all(
-        changedFiles.map(file => 
-          saveToServer({
-            path: file.path,
-            content: file.currentContent
-          })
-        )
-      )
+    const currentFile = getCurrentFile()
+    if (currentFile?.hasChanges) {
+      await saveToServer({
+        path: currentFile.path,
+        content: currentFile.currentContent
+      })
     }
+  }
 
   return (
     <TscircuitCodeEditor
@@ -227,6 +222,22 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       }
       return acc
     }, {} as Record<string, FileWithChanges>)
+  },
+
+  getCurrentFile: () => {
+    const state = get()
+    if (!state.currentFilePath) return null
+
+    const files = get().getFilesWithChanges()
+    return files[state.currentFilePath] || null
   }
+
+  initializeEditor: (config) => {
+    set({
+      originalFiles: config.originalFiles,
+      changes: {},  // Reset any existing changes
+      currentFilePath: Object.keys(config.originalFiles)[0] || null  // Set first file as current
+    })
+  },
 }))
 ```
