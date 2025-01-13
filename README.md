@@ -38,16 +38,12 @@ interface CodeEditorState {
   setShowToolbar: (show: boolean) => void
   setBaseApiUrl: (url: string) => void
   setCodeCompletionApiKey: (key: string) => void
-  
-  // Computed
-  dtsContent: string | null
 }
 
 // Events emitted by the editor
 interface CodeEditorEvents {
   onCodeChange: (code: string, filename: string) => void
   onCursorPositionChange: (position: number | null) => void
-  onDtsChange: (dts: string) => void
   onError: (error: Error) => void
 }
 ```
@@ -64,7 +60,6 @@ interface TscircuitCodeEditorProps {
   
   // Event handlers
   onCodeChange?: (code: string, filename: string) => void
-  onDtsChange?: (dts: string) => void
   onError?: (error: Error) => void
 }
 ```
@@ -73,7 +68,7 @@ interface TscircuitCodeEditorProps {
 
 1. Install the package:
 ```bash
-npm install @tscircuit/code-editor
+bun install @tscircuit/code-editor
 ```
 
 2. Replace existing CodeEditor implementation with TscircuitCodeEditor:
@@ -82,10 +77,8 @@ npm install @tscircuit/code-editor
 // Before
 <CodeEditor
   onCodeChange={handleCodeChange}
-  onDtsChange={handleDtsChange}
   readOnly={isReadOnly}
   initialCode={code}
-  manualEditsFileContent={manualEdits}
   isStreaming={isStreaming}
   showImportAndFormatButtons={showToolbar}
 />
@@ -96,14 +89,12 @@ const { setFile, setActiveFile, setIsStreaming, setReadOnly } = useTscircuitCode
 // Initialize files
 useEffect(() => {
   setFile('index.tsx', code)
-  setFile('manual-edits.json', manualEdits)
   setIsStreaming(isStreaming)
   setReadOnly(isReadOnly)
-}, [code, manualEdits, isStreaming, isReadOnly])
+}, [code, isStreaming, isReadOnly])
 
 <TscircuitCodeEditor
   onCodeChange={handleCodeChange}
-  onDtsChange={handleDtsChange}
   showToolbar={showToolbar}
 />
 ```
@@ -145,7 +136,5 @@ export const useCodeEditorStore = create<CodeEditorState>((set, get) => ({
         }
       }
     })),
-    
-  // ... implement other actions
 }))
 ```
