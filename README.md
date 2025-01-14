@@ -29,7 +29,7 @@ interface EditorStore {
   originalFiles: Record<string, OriginalFile>
   
   // User changes
-  changes: Record<string, FileChange>
+  changedFiles: Record<string, ChangedFile>
   
   // UI state
   currentFilePath: string | null
