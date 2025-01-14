@@ -68,7 +68,6 @@ interface TscircuitCodeEditorProps {
   
   // Custom components
   LoadingComponent?: React.ComponentType
-  ErrorComponent?: React.ComponentType<{ error: Error }>
   FileListComponent?: React.ComponentType<{
     files: Record<string, FileWithChanges>
     currentPath: string | null
