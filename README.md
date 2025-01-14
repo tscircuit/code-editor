@@ -24,6 +24,11 @@ interface FileWithChanges {
   language: 'typescript' | 'json'
 }
 
+// Hook configuration
+interface EditorConfig {
+  loadInitialFiles: () => Promise<Record<string, string>>
+}
+
 interface EditorStore {
   // Original state from server
   originalFiles: Record<string, OriginalFile>
@@ -64,7 +69,6 @@ interface TscircuitCodeEditorProps {
   
   // Event handlers
   onSave?: (file: FileWithChanges) => Promise<void>
-  onError?: (error: Error) => void
   
   // Custom components
   LoadingComponent?: React.ComponentType
@@ -96,37 +100,15 @@ bun install @tscircuit/code-editor
 
 // After
 const CircuitEditor = () => {
-  const [isLoading, setIsLoading] = useState(true)
-
-  const { getCurrentFile, initializeEditor } = useTscircuitEditor()
-  
-  // Load files from server
-  useEffect(() => {
-    const loadFiles = async () => {
-      setIsLoading(true)
-      try {
-        const response = await fetch(`/package_files/list?package_release_id=${releaseId}`)
-        const files = await response.json()
-        
-        // Initialize editor with original files
-        initializeEditor({
-          originalFiles: files.reduce((acc, file) => ({
-            ...acc,
-            [file.path]: {
-              path: file.path,
-              content: file.content,
-              language: file.path.endsWith('.json') ? 'json' : 'typescript'
-            }
-          }), {})
-        })
-      } catch (error) {
-        console.error('Failed to load files:', error)
-      }
-      setIsLoading(false)
-    }
-    
-    loadFiles()
-  }, [releaseId])
+  const { getCurrentFile, isLoading } = useTscircuitEditor({
+    // Provide file loading function
+    loadInitialFiles: () => fetch(`/package_files/list?package_release_id=${releaseId}`)
+      .then(res => res.json())
+      .then(files => files.reduce((acc, file) => ({
+        ...acc,
+        [file.path]: file.content
+      }), {}))
+  })
 
   const handleSave = async () => {
     const currentFile = getCurrentFile()
@@ -138,15 +120,16 @@ const CircuitEditor = () => {
     }
   }
 
+  if (isLoading) {
+    return <LoadingSpinner />
+  }
+
   return (
     <TscircuitCodeEditor
       theme="dark"
       showToolbar
       toolbarItems={<>Custom toolbar headers...</>}
       onSave={handleSave}
-      onError={(error) => {
-        toast.error(error.message)
-      }}
     />
   )
 }
@@ -156,10 +139,10 @@ const CircuitEditor = () => {
 ```typescript
 import { create } from 'zustand'
 
-export const useEditorStore = create<EditorStore>((set, get) => ({
+const useEditorStore = create<EditorStore>((set, get) => ({
   // Initial state
   originalFiles: {},
-  changes: {},
+  changedFiles: {},
   currentFilePath: null,
 
   // Actions
@@ -171,15 +154,15 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     if (content === originalFile.content) {
       // Remove change if content matches original
       set((state) => {
-        const newChanges = { ...state.changes }
+        const newChanges = { ...state.changedFiles }
         delete newChanges[path]
-        return { changes: newChanges }
+        return { changedFiles: newChanges }
       })
     } else {
       // Update or create change
       set((state) => ({
-        changes: {
-          ...state.changes,
+        changedFiles: {
+          ...state.changedFiles,
           [path]: {
             path,
             content,
@@ -192,12 +175,12 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
   resetChanges: (paths) => {
     set((state) => {
-      if (!paths) return { changes: {} }
-      const newChanges = { ...state.changes }
+      if (!paths) return { changedFiles: {} }
+      const newChanges = { ...state.changedFiles }
       paths.forEach(path => {
         delete newChanges[path]
       })
-      return { changes: newChanges }
+      return { changedFiles: newChanges }
     })
   },
 
@@ -210,7 +193,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     const state = get()
     return Object.keys(state.originalFiles).reduce((acc, path) => {
       const originalFile = state.originalFiles[path]
-      const change = state.changes[path]
+      const change = state.changedFiles[path]
       
       acc[path] = {
         path,
@@ -229,14 +212,48 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
     const files = get().getFilesWithChanges()
     return files[state.currentFilePath] || null
-  }
+  },
 
   initializeEditor: (config) => {
     set({
       originalFiles: config.originalFiles,
-      changes: {},  // Reset any existing changes
-      currentFilePath: Object.keys(config.originalFiles)[0] || null  // Set first file as current
+      changedFiles: {},  // Reset any existing changes
+      currentFilePath: Object.keys(config.originalFiles)[0] || null
     })
-  },
+  }
 }))
+
+// Hook implementation
+const useTscircuitEditor = (config: EditorConfig) => {
+  const store = useEditorStore()
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Initialize immediately 
+  if (config?.loadInitialFiles) {
+    setIsLoading(true)
+    config.loadInitialFiles()
+      .then(filesContent => {
+        const originalFiles = Object.entries(filesContent).reduce(
+          (acc, [path, content]) => ({
+            ...acc,
+            [path]: {
+              path,
+              content,
+              language: path.endsWith('.json') ? 'json' : 'typescript'
+            }
+          }), 
+          {}
+        )
+        store.initializeEditor({ originalFiles })
+      })
+      .finally(() => setIsLoading(false))
+  }
+
+  return {
+    ...store,
+    isLoading
+  }
+}
+
+export { useTscircuitEditor }
 ```
