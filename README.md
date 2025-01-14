@@ -10,7 +10,7 @@ interface OriginalFile {
   language: 'typescript' | 'json'
 }
 
-interface FileChange {
+interface ChangedFile {
   path: string
   content: string
   lastModified: Date
