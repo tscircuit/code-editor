@@ -4,19 +4,11 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
-    lib: {
-      entry: 'src/index.tsx',
-      name: 'TscircuitCodeEditor',
-      formats: ['es', 'umd'],
-      fileName: (format) => `tscircuit-code-editor.${format}.js`
-    },
+    outDir: 'cosmos-export',
+    emptyOutDir: true,
     rollupOptions: {
-      external: ['react', 'react-dom'],
-      output: {
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM'
-        }
+      input: {
+        main: 'index.html'
       }
     }
   }
