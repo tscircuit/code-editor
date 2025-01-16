@@ -8,6 +8,7 @@
     "start": "cosmos",
     "format": "biome format --write .",
     "format:check": "biome format .",
+    "build": "cosmos-export",
     "vercel:build": "bun run build && cosmos-export"
   },
   "files": [
