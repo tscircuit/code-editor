@@ -1,15 +1,15 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: 'cosmos-export',
+    outDir: 'dist/cosmos',
+    emptyOutDir: true,
     rollupOptions: {
-      input: 'src/main.tsx',
-    },
-    // Ensure HTML files are generated
-    manifest: true,
-    write: true,
+      input: {
+        main: 'index.html'
+      }
+    }
   }
-});
+})
