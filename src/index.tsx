@@ -8,7 +8,7 @@ install(config)
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <div>
-      <TscircuitCodeEditor code="console.log('Hello World')" />
+      <TscircuitCodeEditor />
     </div>
   </React.StrictMode>,
 )
