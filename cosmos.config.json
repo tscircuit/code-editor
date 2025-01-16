@@ -1,0 +1,10 @@
+{
+  "staticPath": "public",
+  "watchDirs": ["src"],
+  "exportPath": "dist/cosmos",
+  "fixturesDir": "__fixtures__",
+  "fixturesPort": 5000,
+  "globalImports": ["./twind.config.ts"],
+  "decoratorPath": ["./cosmos.decorator.tsx"],
+  "plugins": ["react-cosmos-plugin-vite"]
+}

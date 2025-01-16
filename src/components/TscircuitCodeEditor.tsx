@@ -13,10 +13,10 @@ interface CodeEditorProps {
   code: string
   onChange?: (code: string) => void
   readOnly?: boolean
-  
+
   // Optional styling
   className?: string
-  
+
   // Language options
   language?: "typescript" | "json"
 }
@@ -26,7 +26,7 @@ export const TscircuitCodeEditor = ({
   onChange,
   readOnly = false,
   className = "",
-  language = "typescript"
+  language = "typescript",
 }: CodeEditorProps) => {
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
@@ -37,7 +37,7 @@ export const TscircuitCodeEditor = ({
     // Set up base extensions
     const baseExtensions = [
       basicSetup,
-      language === "typescript" 
+      language === "typescript"
         ? javascript({ typescript: true, jsx: true })
         : json(),
       keymap.of([indentWithTab]),
@@ -47,7 +47,7 @@ export const TscircuitCodeEditor = ({
           const newContent = update.state.doc.toString()
           onChange?.(newContent)
         }
-      })
+      }),
     ]
 
     const state = EditorState.create({
@@ -65,7 +65,7 @@ export const TscircuitCodeEditor = ({
     return () => {
       view.destroy()
     }
-  }, [code, readOnly, language])
+  }, [code, readOnly, language, onChange])
 
   // Update editor content when code prop changes
   useEffect(() => {
@@ -76,19 +76,12 @@ export const TscircuitCodeEditor = ({
           changes: {
             from: 0,
             to: currentContent.length,
-            insert: code
-          }
+            insert: code,
+          },
         })
       }
     }
   }, [code])
 
-  return (
-    <div 
-      ref={editorRef} 
-      className={className}
-    />
-  )
+  return <div ref={editorRef} className={className} />
 }
-
-export default TscircuitCodeEditor

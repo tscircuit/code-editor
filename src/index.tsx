@@ -1,11 +1,14 @@
-import React from 'react'
-import TscircuitCodeEditor from './components/TscircuitCodeEditor'
-function App() {
-  return (
+import React, { StrictMode } from "react"
+import ReactDOM from "react-dom/client"
+import { install } from "@twind/core"
+import config from "../twind.config"
+import { TscircuitCodeEditor } from "./components/TscircuitCodeEditor"
+install(config)
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
     <div>
       <TscircuitCodeEditor code="console.log('Hello World')" />
     </div>
-  )
-}
-
-export default App
+  </React.StrictMode>,
+)
