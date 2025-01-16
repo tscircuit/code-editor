@@ -3,5 +3,11 @@
   "exportPath": "cosmos-export",
   "staticPath": "public",
   "publicUrl": "/",
+  "ui": {
+    "responsivePreview": true
+  },
+  "vite": {
+    "configPath": "vite.config.ts"
+  },
   "fixturesDir": "__fixtures__"
 }
