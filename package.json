@@ -8,7 +8,7 @@
     "start": "cosmos",
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "build": "bun run build:src && bun run build:site",
+    "build": "bun run build:site",
     "build:src": "tsup src/main.tsx --platform browser --format esm --dts",
     "build:site": "cosmos-export",
     "vercel-build": "cosmos-export"
