@@ -11,7 +11,7 @@
     "build": "bun run build:site",
     "build:src": "tsup src/main.tsx --platform browser --format esm --dts",
     "build:site": "cosmos-export",
-    "vercel-build": "cosmos-export"
+    "vercel-build": "rm -rf cosmos-export && cosmos-export"
   },
   "files": [
     "dist"
@@ -27,7 +27,7 @@
     "react-cosmos-plugin-vite": "^6.2.0",
     "tsup": "^8.3.5",
     "typescript": "^5.7.3",
-    "vite": "^3.0.7"
+    "vite": "^6.0.3"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.0.0",
