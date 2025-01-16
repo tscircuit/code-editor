@@ -1,4 +1,7 @@
 {
   "plugins": ["react-cosmos-plugin-vite"],
-  "exportPath": "cosmos-export"
+  "exportPath": "cosmos-export",
+  "staticPath": "public",
+  "publicUrl": "/",
+  "fixturesDir": "__fixtures__"
 }

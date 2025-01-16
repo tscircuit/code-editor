@@ -1,24 +1,15 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'cosmos-export',
-    lib: {
-      entry: 'src/main.tsx',
-      name: 'TscircuitCodeEditor',
-      formats: ['es', 'umd'],
-      fileName: (format) => `tscircuit-code-editor.${format}.js`
-    },
     rollupOptions: {
-      external: ['react', 'react-dom'],
-      output: {
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM'
-        }
-      }
-    }
+      input: 'src/main.tsx',
+    },
+    // Ensure HTML files are generated
+    manifest: true,
+    write: true,
   }
-})
+});
