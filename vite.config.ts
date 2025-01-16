@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     lib: {
-      entry: 'src/index.tsx',
+      entry: 'src/main.tsx',
       name: 'TscircuitCodeEditor',
       formats: ['es', 'umd'],
       fileName: (format) => `tscircuit-code-editor.${format}.js`
