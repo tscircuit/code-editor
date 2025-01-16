@@ -1,8 +1,6 @@
 {
   "plugins": ["react-cosmos-plugin-vite"],
   "exportPath": "cosmos-export",
-  "staticPath": "public",
-  "publicUrl": "/",
   "ui": {
     "responsivePreview": true
   },
