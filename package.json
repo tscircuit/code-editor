@@ -4,6 +4,9 @@
   "main": "dist/index.js",
   "type": "module",
   "license": "MIT",
+  "exports": {
+    ".": "./dist/index.js"
+  },
   "scripts": {
     "start": "cosmos",
     "format": "biome format --write .",
