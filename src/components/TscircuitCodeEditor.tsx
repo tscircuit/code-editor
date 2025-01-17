@@ -1,37 +1,34 @@
-import { indentWithTab } from "@codemirror/commands"
-import { javascript } from "@codemirror/lang-javascript"
-import { json } from "@codemirror/lang-json"
-import { EditorState } from "@codemirror/state"
-import { keymap } from "@codemirror/view"
-import { EditorView } from "codemirror"
-import { useEffect, useRef } from "react"
+import type { setupTypeAcquisition } from "@typescript/ata"
+import type { createVirtualTypeScriptEnvironment } from "@typescript/vfs"
+import type { EditorView } from "codemirror"
+import { initializeEditor } from "../lib/codemirror"
+import { useEffect, useRef, useState } from "react"
 import { useTscircuitEditor } from "../global-store"
-import { basicSetup } from "../lib/codemirror/basic-setup"
-import { CodeEditorHeader } from "./CodeEditorHeader"
-import type { FileWithChanges } from "../types"
+import type { FileWithChanges } from "types"
 
-interface TscircuitCodeEditorProps {
-  // Appearance
-  className?: string
-  theme?: "light" | "dark"
-  fontSize?: number
-  showLineNumbers?: boolean
-
-  // Core props
-  onChange?: (code: string) => void
+interface TsCodeEditorProps {
   readOnly?: boolean
-
-  // Language options
+  className?: string
   language?: "typescript" | "json"
+  apiUrl?: string
+  toolbarItems?: React.ReactNode
+  showToolbar?: boolean
 }
 
 export const TscircuitCodeEditor = ({
-  onChange,
   className = "",
   language = "typescript",
-}: TscircuitCodeEditorProps) => {
+  readOnly = false,
+  apiUrl = "",
+  toolbarItems,
+  showToolbar = false,
+}: TsCodeEditorProps) => {
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
+  const ataRef = useRef<ReturnType<typeof setupTypeAcquisition> | null>(null)
+  const envRef = useRef<ReturnType<
+    typeof createVirtualTypeScriptEnvironment
+  > | null>(null)
   const currentFileRef = useRef<FileWithChanges | null>(null)
 
   const { getCurrentFile, updateContent } = useTscircuitEditor()
@@ -43,6 +40,13 @@ export const TscircuitCodeEditor = ({
     currentFileRef.current = currentFile
   }, [currentFile])
 
+  const [ataInitialized, setAtaInitialized] = useState(false)
+
+  const [currentCode, setCurrentCode] = useState(
+    getCurrentFile()?.currentContent || "",
+  )
+
+  // Update editor content
   const updateCurrentEditorContent = (newContent: string) => {
     if (viewRef.current) {
       const state = viewRef.current.state
@@ -54,51 +58,39 @@ export const TscircuitCodeEditor = ({
     }
   }
 
+  const onChange = (code: string) => {
+    const currentFilePath = currentFileRef.current?.path
+    if (currentFilePath) {
+      updateContent(currentFilePath, code)
+    }
+  }
+
   useEffect(() => {
     if (!editorRef.current) return
 
-    // Set up base extensions
-    const baseExtensions = [
-      basicSetup,
-      language === "typescript"
-        ? javascript({ typescript: true, jsx: true })
-        : json(),
-      keymap.of([indentWithTab]),
-      EditorView.updateListener.of((update) => {
-        if (update.docChanged) {
-          const newContent = update.state.doc.toString()
-          onChange?.(newContent)
-          const currentFilePath = currentFileRef.current?.path
-          if (currentFilePath) {
-            updateContent(currentFilePath, newContent)
-          }
-        }
-      }),
-    ]
-
-    // Only create the editor once
-    if (!viewRef.current) {
-      const state = EditorState.create({
-        doc: initialCode,
-        extensions: baseExtensions,
-      })
-
-      const view = new EditorView({
-        state,
-        parent: editorRef.current,
-      })
-
-      viewRef.current = view
-    }
+    initializeEditor(
+      {
+        container: editorRef.current,
+        initialCode: initialCode || "",
+        language,
+        readOnly,
+        apiUrl,
+        onChange,
+        setCurrentCode,
+        setAtaInitialized,
+      },
+      { viewRef, ataRef, envRef },
+    )
 
     return () => {
-      // Only destroy on unmount
       if (viewRef.current) {
         viewRef.current.destroy()
         viewRef.current = null
       }
+      ataRef.current = null
+      envRef.current = null
     }
-  }, []) // Empty dependency array - only run once on mount
+  }, [])
 
   // Update editor content when file changes
   useEffect(() => {
@@ -109,7 +101,7 @@ export const TscircuitCodeEditor = ({
 
   return (
     <div className={`flex flex-col h-full ${className}`}>
-      <CodeEditorHeader />
+      {showToolbar && toolbarItems}
       <div ref={editorRef} className="flex-1 overflow-auto" />
     </div>
   )

@@ -1,15 +1,15 @@
 import { TscircuitCodeEditor } from "../src/components/TscircuitCodeEditor"
 import { useTscircuitEditor } from "../src/global-store"
+import { CodeEditorHeader } from "../src/components/CodeEditorHeader"
 
 const loadInitialFiles = () => {
   return Promise.resolve({
     "index.tsx": "console.log('Example fixture')",
-    "manual-edits.json": "{}",
   })
 }
 
 export default {
-  "Example Code Editor": () => {
+  "Example Code Editor Without Toolbar": () => {
     const { getCurrentFile } = useTscircuitEditor({
       loadInitialFiles,
     })
