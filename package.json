@@ -1,5 +1,5 @@
 {
-  "name": "code-editor",
+  "name": "@tscircuit/code-editor",
   "version": "0.0.1",
   "main": "dist/index.js",
   "type": "module",
@@ -11,8 +11,8 @@
     "start": "cosmos",
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "build": "bun run build:site",
-    "build:src": "tsup src/main.tsx --platform browser --format esm --dts",
+    "build": "bun run build:lib",
+    "build:lib": "tsup lib/index.ts --platform browser --format esm --dts",
     "build:site": "cosmos-export",
     "vercel-build": "rm -rf cosmos-export && cosmos-export"
   },

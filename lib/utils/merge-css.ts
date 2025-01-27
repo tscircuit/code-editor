@@ -7,7 +7,7 @@ export function cn(...inputs: (string | undefined | null | false)[]) {
   const validInputs = inputs.filter(Boolean)
   
   // Process with Twind first
-  const twindClasses = validInputs.map(input => tw(input))
+  const twindClasses = validInputs.map(input => tw(input as string))
   
   // Then merge with tailwind-merge to handle conflicts correctly
   return twMerge(twindClasses.join(' '))
