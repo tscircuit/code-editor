@@ -14,7 +14,7 @@
     "build": "bun run build:lib",
     "build:lib": "tsup lib/index.ts --platform browser --format esm --dts",
     "build:site": "cosmos-export",
-    "vercel-build": "rm -rf cosmos-export && cosmos-export"
+    "vercel-build": "cosmos-export"
   },
   "files": [
     "dist"
