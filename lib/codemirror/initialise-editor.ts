@@ -1,14 +1,12 @@
-import { EditorState } from "@codemirror/state"
-import { EditorView } from "codemirror"
-import { keymap } from "@codemirror/view"
 import { indentWithTab } from "@codemirror/commands"
 import { javascript } from "@codemirror/lang-javascript"
 import { json } from "@codemirror/lang-json"
-import { createSystem, createDefaultMapFromCDN } from "@typescript/vfs"
-import { createVirtualTypeScriptEnvironment } from "@typescript/vfs"
+import { EditorState } from "@codemirror/state"
+import { keymap, EditorView } from "@codemirror/view"
 import type { setupTypeAcquisition } from "@typescript/ata"
+import { createDefaultMapFromCDN, createSystem, createVirtualTypeScriptEnvironment } from "@typescript/vfs"
 import ts from "typescript"
-import { createTypeScriptSetup, basicSetup } from "./index"
+import { basicSetup, createTypeScriptSetup } from "./index"
 
 const defaultImports = `
 import React from "@types/react/jsx-runtime"

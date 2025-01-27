@@ -2,7 +2,7 @@ import React, { StrictMode } from "react"
 import ReactDOM from "react-dom/client"
 import { install } from "@twind/core"
 import config from "../twind.config"
-import { TscircuitCodeEditor } from "./components/TscircuitCodeEditor"
+import { TscircuitCodeEditor } from "../lib/components/TscircuitCodeEditor"
 
 install(config)
 

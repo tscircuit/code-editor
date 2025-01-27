@@ -1,6 +1,6 @@
-import { TscircuitCodeEditor } from "../src/components/TscircuitCodeEditor"
-import { useTscircuitEditor } from "../src/global-store"
-import { CodeEditorHeader } from "../src/components/CodeEditorHeader"
+import { TscircuitCodeEditor } from "../lib/components/TscircuitCodeEditor"
+import { useTscircuitEditor } from "../lib/global-store"
+import { CodeEditorHeader } from "../lib/components/CodeEditorHeader"
 
 const loadInitialFiles = () => {
   return Promise.resolve({

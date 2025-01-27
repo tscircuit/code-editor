@@ -1,20 +1,20 @@
 import { useState } from "react"
 import { useTscircuitEditor } from "../global-store"
 import "../prettier"
-import { Button } from "../ui/button"
+import { Button } from "./ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu"
+} from "./ui/dropdown-menu"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select"
+} from "./ui/select"
 
 export const CodeEditorHeader = () => {
     // TODO

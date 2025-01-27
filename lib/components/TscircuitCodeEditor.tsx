@@ -1,10 +1,10 @@
 import type { setupTypeAcquisition } from "@typescript/ata"
 import type { createVirtualTypeScriptEnvironment } from "@typescript/vfs"
-import type { EditorView } from "codemirror"
-import { initializeEditor } from "../lib/codemirror"
 import { useEffect, useRef, useState } from "react"
+import type { EditorView } from "@codemirror/view"
+import { initializeEditor } from "../codemirror"
 import { useTscircuitEditor } from "../global-store"
-import type { FileWithChanges } from "types"
+import type { FileWithChanges } from "../types"
 
 interface TsCodeEditorProps {
   readOnly?: boolean
